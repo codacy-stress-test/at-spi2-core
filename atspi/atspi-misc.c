@@ -374,7 +374,8 @@ handle_get_bus_address (DBusPendingCall *pending, void *user_data)
             }
           else
             {
-              if (!strcmp (error.name, DBUS_ERROR_FILE_NOT_FOUND))
+              if (!strcmp (error.name, DBUS_ERROR_FILE_NOT_FOUND) &&
+                  !g_getenv ("ATSPI_IN_TESTS"))
                 g_warning ("AT-SPI: Unable to open bus connection: %s", error.message);
               dbus_error_free (&error);
             }
@@ -2193,4 +2194,25 @@ _atspi_strdup_and_adjust_for_dbus (const char *s)
 
   d[0] = toupper (d[0]);
   return d;
+}
+
+/**
+ * atspi_get_version:
+ * @major: (out): the major version.
+ * @minor: (out): the minor version.
+ * @micro: (out): the micro/patch version.
+ *
+ * Returns the version of the AT-SPI library being used at runtime.
+
+* Since: 2.50
+ */
+void
+atspi_get_version (gint *major, gint *minor, gint *micro)
+{
+  if (major)
+    *major = ATSPI_MAJOR_VERSION;
+  if (minor)
+    *minor = ATSPI_MINOR_VERSION;
+  if (micro)
+    *micro = ATSPI_MICRO_VERSION;
 }
