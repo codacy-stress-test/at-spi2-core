@@ -200,11 +200,12 @@ static void
 grab_key (AtspiDeviceX11 *x11_device, Window window, int keycode, int modmask)
 {
   AtspiDeviceX11Private *priv = atspi_device_x11_get_instance_private (x11_device);
+  gboolean include_numlock = !_atspi_key_is_on_keypad (keycode);
 
   grab_key_aux (x11_device, window, keycode, modmask);
   if (!(modmask & LockMask))
     grab_key_aux (x11_device, window, keycode, modmask | LockMask);
-  if (!(modmask & priv->numlock_physical_mask))
+  if (include_numlock && !(modmask & priv->numlock_physical_mask))
     {
       grab_key_aux (x11_device, window, keycode, modmask | priv->numlock_physical_mask);
       if (!(modmask & LockMask))
@@ -234,7 +235,7 @@ ungrab_key_aux (AtspiDeviceX11 *x11_device, Window window, int keycode, int modm
   xi_modifiers.modifiers = modmask;
   xi_modifiers.status = 0;
 
-  XIUngrabKeycode (priv->display, XIAllMasterDevices, keycode, window, sizeof (xi_modifiers), &xi_modifiers);
+  XIUngrabKeycode (priv->display, XIAllMasterDevices, keycode, window, 1, &xi_modifiers);
 }
 
 static void
@@ -283,9 +284,14 @@ refresh_key_grabs (AtspiDeviceX11 *x11_device)
   for (l = priv->key_grabs; l; l = l->next)
     {
       AtspiX11KeyGrab *grab = l->data;
-      gboolean new_enabled = grab_should_be_enabled (x11_device, grab);
       if (grab->window != priv->focused_window)
         disable_key_grab (x11_device, grab);
+  }
+
+  for (l = priv->key_grabs; l; l = l->next)
+    {
+      AtspiX11KeyGrab *grab = l->data;
+      gboolean new_enabled = grab_should_be_enabled (x11_device, grab);
       if (new_enabled && !grab->enabled)
         enable_key_grab (x11_device, grab);
       else if (grab->enabled && !new_enabled)
