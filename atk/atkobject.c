@@ -79,6 +79,7 @@ enum
   PROP_TABLE_CAPTION_OBJECT,
   PROP_HYPERTEXT_NUM_LINKS,
   PROP_ACCESSIBLE_ID,
+  PROP_HELP_TEXT,
   PROP_LAST /* gobject convention */
 };
 
@@ -99,6 +100,7 @@ enum
 typedef struct
 {
   gchar *accessible_id;
+  gchar *help_text;
 } AtkObjectPrivate;
 
 static gint AtkObject_private_offset;
@@ -157,6 +159,8 @@ static const gchar *const atk_object_name_property_table_row_header = "accessibl
 static const gchar *const atk_object_name_property_table_summary = "accessible-table-summary";
 static const gchar *const atk_object_name_property_table_caption_object = "accessible-table-caption-object";
 static const gchar *const atk_object_name_property_hypertext_num_links = "accessible-hypertext-nlinks";
+static const gchar *const atk_object_name_property_accessible_id = "accessible-id";
+static const gchar *const atk_object_name_property_help_text = "accessible-help-text";
 
 static void
 initialize_role_names ()
@@ -429,6 +433,20 @@ atk_object_class_init (AtkObjectClass *klass)
                                                      0,
                                                      G_PARAM_READABLE));
 
+  g_object_class_install_property (gobject_class,
+                                   PROP_ACCESSIBLE_ID,
+                                   g_param_spec_string (atk_object_name_property_accessible_id,
+                                                        _ ("Accessible ID"),
+                                                        _ ("ID for the accessible; useful for automated testing"),
+                                                        NULL,
+                                                        G_PARAM_READWRITE));
+  g_object_class_install_property (gobject_class,
+                                   PROP_HELP_TEXT,
+                                   g_param_spec_string (atk_object_name_property_help_text,
+                                                        _ ("Help text"),
+                                                        _ ("Help text associated with the accessible"),
+                                                        NULL,
+                                                        G_PARAM_READWRITE));
   /**
    * AtkObject::children-changed:
    * @atkobject: the object which received the signal.
@@ -618,6 +636,7 @@ atk_object_init (AtkObject *accessible,
   accessible->relation_set = atk_relation_set_new ();
   accessible->role = ATK_ROLE_UNKNOWN;
   private->accessible_id = NULL;
+  private->help_text = NULL;
 }
 
 GType
@@ -1273,6 +1292,9 @@ atk_object_real_set_property (GObject *object,
     case PROP_ACCESSIBLE_ID:
       atk_object_set_accessible_id (accessible, g_value_get_string (value));
       break;
+    case PROP_HELP_TEXT:
+      atk_object_set_help_text (accessible, g_value_get_string (value));
+      break;
     default:
       break;
     }
@@ -1329,6 +1351,9 @@ atk_object_real_get_property (GObject *object,
     case PROP_ACCESSIBLE_ID:
       g_value_set_string (value, atk_object_get_accessible_id (accessible));
       break;
+    case PROP_HELP_TEXT:
+      g_value_set_string (value, atk_object_get_help_text (accessible));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -1359,6 +1384,7 @@ atk_object_finalize (GObject *object)
     g_object_unref (accessible->accessible_parent);
 
   g_free (private->accessible_id);
+  g_free (private->help_text);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -1685,7 +1711,7 @@ atk_object_get_accessible_id (AtkObject *accessible)
 /**
  * atk_object_set_accessible_id:
  * @accessible: an #AtkObject
- * @name: a character string to be set as the accessible id
+ * @id: a character string to be set as the accessible id
  *
  * Sets the accessible ID of the accessible.  This is not meant to be presented
  * to the user, but to be an ID which is stable over application development.
@@ -1701,6 +1727,43 @@ atk_object_set_accessible_id (AtkObject *accessible, const gchar *id)
   AtkObjectPrivate *private = atk_object_get_instance_private (accessible);
   g_free (private->accessible_id);
   private->accessible_id = g_strdup (id);
+}
+
+/**
+ * atk_object_get_help_text:
+ * @accessible: an #AtkObject
+ *
+ * Gets the help text associated with the accessible.
+ *
+ * Since: 2.52
+ *
+ * Returns: a character string representing the help text or the object, or
+ * NULL if no such string was set.
+ **/
+const gchar *
+atk_object_get_help_text (AtkObject *accessible)
+{
+  AtkObjectPrivate *private = atk_object_get_instance_private (accessible);
+  return private->help_text;
+}
+
+/**
+ * atk_object_set_help_text:
+ * @accessible: an #AtkObject
+ * @help_text: a character string to be set as the accessible's help text
+ *
+ * Sets the help text associated with the accessible. This can be used to
+ * expose context-sensitive information to help a user understand how to
+ * interact with the object.
+ *
+ * Since: 2.52
+ **/
+void
+atk_object_set_help_text (AtkObject *accessible, const gchar *help_text)
+{
+  AtkObjectPrivate *private = atk_object_get_instance_private (accessible);
+  g_free (private->help_text);
+  private->help_text = g_strdup (help_text);
 }
 
 static void
